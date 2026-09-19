@@ -148,7 +148,8 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
         PathSegment& segment = pathSegments[index];
 
         segment.ray.origin = cam.position;
-        segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
+        segment.radiance = glm::vec3(0.0f);
+        segment.throughput = glm::vec3(1.0f);
 
         thrust::default_random_engine rng = makeSeededRandomEngine(iter, index, 0);
         thrust::uniform_real_distribution<float> u01(0.0f, 1.0f);
@@ -278,29 +279,21 @@ __global__ void shadeFakeMaterial(
     const ShadeableIntersection& intersection = shadeableIntersections[idx];
 
     if (intersection.t <= 0.0f) {
-        pathSegment.color = glm::vec3(0.0f);
         pathSegment.remainingBounces = 0;
         return;
     }
-
-    // Set up the RNG
-    thrust::default_random_engine rng = makeSeededRandomEngine(iter, idx, pathSegment.remainingBounces);
 
     Material material = materials[intersection.materialId];
 
-    // If the material indicates that the object was a light, "light" the ray
-    if (material.emittance.r > 0.0f || material.emittance.g > 0.0f || material.emittance.b > 0.0f) {
-        pathSegment.color *= material.emittance;
-        pathSegment.remainingBounces = 0;
-        return;
-    }
+    pathSegment.radiance += pathSegment.throughput * material.emittance;
 
     if (pathSegment.remainingBounces <= 1)
     {
-        pathSegment.color = glm::vec3(0.0f);
         pathSegment.remainingBounces = 0;
     }
     else {
+        thrust::default_random_engine rng = makeSeededRandomEngine(iter, pathSegment.pixelIndex, pathSegment.remainingBounces);
+
         glm::vec3 intersectPoint = pathSegment.ray.origin + pathSegment.ray.direction * intersection.t;
         scatterRay(pathSegment, intersectPoint, intersection.surfaceNormal, material, rng);
         
@@ -318,7 +311,7 @@ __global__ void finalGather(int nPaths, glm::vec3* image, PathSegment* iteration
     if (index < nPaths)
     {
         PathSegment iterationPath = iterationPaths[index];
-        image[iterationPath.pixelIndex] += iterationPath.color;
+        image[iterationPath.pixelIndex] += iterationPath.radiance;
     }
 }
 

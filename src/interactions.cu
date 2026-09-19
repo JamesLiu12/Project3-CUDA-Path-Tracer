@@ -139,7 +139,7 @@ __host__ __device__ void scatterRay(
 
         if (NdotV <= 0.0f)
         {
-            pathSegment.color = glm::vec3(0.0f);
+            pathSegment.throughput = glm::vec3(0.0f);
             pathSegment.remainingBounces = 0;
             return;
         }
@@ -148,7 +148,7 @@ __host__ __device__ void scatterRay(
         {
             light = glm::normalize(glm::reflect(-view, normal));
             glm::vec3 F = fresnelSchlick(NdotV, F0);
-            pathSegment.color *= F / pSpecular;
+            pathSegment.throughput *= F / pSpecular;
         }
         else
         {
@@ -158,7 +158,7 @@ __host__ __device__ void scatterRay(
 
             if (NdotL <= 0.0f)
             {
-                pathSegment.color = glm::vec3(0.0f);
+                pathSegment.throughput = glm::vec3(0.0f);
                 pathSegment.remainingBounces = 0;
                 return;
             }
@@ -166,7 +166,7 @@ __host__ __device__ void scatterRay(
             glm::vec3 half = glm::normalize(view + light);
             glm::vec3 F = fresnelSchlick(glm::dot(view, half), F0);
 
-            pathSegment.color *= (1.0f - metallic) * (glm::vec3(1.0f) - F) * m.albedo / (1.0f - pSpecular);
+            pathSegment.throughput *= (1.0f - metallic) * (glm::vec3(1.0f) - F) * m.albedo / (1.0f - pSpecular);
         }
 
         pathSegment.ray.direction = light;
@@ -178,7 +178,7 @@ __host__ __device__ void scatterRay(
         glm::vec3 half = sampleGGXNormal(normal, alpha, rng);
 
         if (glm::dot(view, half) <= 0.0f) {
-            pathSegment.color = glm::vec3(0.0f);
+            pathSegment.throughput = glm::vec3(0.0f);
             pathSegment.remainingBounces = 0;
             return;
         }
@@ -197,7 +197,7 @@ __host__ __device__ void scatterRay(
     float VdotH = glm::dot(view, half);
 
     if (NdotV <= 0.0f || NdotL <= 0.0f) {
-        pathSegment.color = glm::vec3(0.0f);
+        pathSegment.throughput = glm::vec3(0.0f);
         pathSegment.remainingBounces = 0;
         return;
     }
@@ -216,14 +216,14 @@ __host__ __device__ void scatterRay(
 
     if (pdf > 0)
     {
-        pathSegment.color *= (diffuse + specular) * NdotL / pdf;
+        pathSegment.throughput *= (diffuse + specular) * NdotL / pdf;
 
         pathSegment.ray.direction = light;
         pathSegment.ray.origin = intersect + 1e-3f * normal;
     }
     else
     {
-        pathSegment.color = glm::vec3(0.0f);
+        pathSegment.throughput = glm::vec3(0.0f);
         pathSegment.remainingBounces = 0;
     }
 }
