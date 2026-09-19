@@ -120,6 +120,7 @@ __host__ __device__ void scatterRay(
 
     float alpha = roughness * roughness;
 
+    // TODO: improve?
     float pSpecular = metallic == 1.0f ? 1.0f : 0.5f;
 
     thrust::uniform_real_distribution<float> u01(0, 1);
@@ -131,6 +132,48 @@ __host__ __device__ void scatterRay(
     }
 
     glm::vec3 light;
+
+    if (alpha < 1e-3f)
+    {
+        float NdotV = glm::dot(normal, view);
+
+        if (NdotV <= 0.0f)
+        {
+            pathSegment.color = glm::vec3(0.0f);
+            pathSegment.remainingBounces = 0;
+            return;
+        }
+
+        if (u01(rng) < pSpecular)
+        {
+            light = glm::normalize(glm::reflect(-view, normal));
+            glm::vec3 F = fresnelSchlick(NdotV, F0);
+            pathSegment.color *= F / pSpecular;
+        }
+        else
+        {
+            light = sampleCosineWeightedHemisphere(normal, rng);
+
+            float NdotL = glm::dot(normal, light);
+
+            if (NdotL <= 0.0f)
+            {
+                pathSegment.color = glm::vec3(0.0f);
+                pathSegment.remainingBounces = 0;
+                return;
+            }
+
+            glm::vec3 half = glm::normalize(view + light);
+            glm::vec3 F = fresnelSchlick(glm::dot(view, half), F0);
+
+            pathSegment.color *= (1.0f - metallic) * (glm::vec3(1.0f) - F) * m.albedo / (1.0f - pSpecular);
+        }
+
+        pathSegment.ray.direction = light;
+        pathSegment.ray.origin = intersect + 1e-3f * normal;
+        return;
+    }
+
     if (u01(rng) < pSpecular) {
         glm::vec3 half = sampleGGXNormal(normal, alpha, rng);
 
