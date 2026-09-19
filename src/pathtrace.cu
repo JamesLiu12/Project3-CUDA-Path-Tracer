@@ -44,7 +44,7 @@ void checkCUDAErrorFn(const char* msg, const char* file, int line)
 }
 
 #define MATERIAL_SORTING 0
-#define STOCHASTIC_SAMPLING 0
+#define STOCHASTIC_SAMPLING 1
 
 __host__ __device__
 thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int depth)
@@ -289,8 +289,8 @@ __global__ void shadeFakeMaterial(
     Material material = materials[intersection.materialId];
 
     // If the material indicates that the object was a light, "light" the ray
-    if (material.emittance > 0.0f) {
-        pathSegment.color *= material.color * material.emittance;
+    if (material.emittance.r > 0.0f || material.emittance.g > 0.0f || material.emittance.b > 0.0f) {
+        pathSegment.color *= material.emittance;
         pathSegment.remainingBounces = 0;
         return;
     }
@@ -303,7 +303,10 @@ __global__ void shadeFakeMaterial(
     else {
         glm::vec3 intersectPoint = pathSegment.ray.origin + pathSegment.ray.direction * intersection.t;
         scatterRay(pathSegment, intersectPoint, intersection.surfaceNormal, material, rng);
-        pathSegment.remainingBounces--;
+        
+        if (pathSegment.remainingBounces > 0) {
+            pathSegment.remainingBounces--;
+        }
     }
 }
 

@@ -35,16 +35,10 @@ struct Geom
 
 struct Material
 {
-    glm::vec3 color;
-    struct
-    {
-        float exponent;
-        glm::vec3 color;
-    } specular;
-    float hasReflective;
-    float hasRefractive;
-    float indexOfRefraction;
-    float emittance;
+    glm::vec3 albedo = glm::vec3(0.0f);
+    float metalness = 0.0f;
+    float roughness = 0.5f;
+    glm::vec3 emittance = glm::vec3(0.0f);
 };
 
 struct Camera

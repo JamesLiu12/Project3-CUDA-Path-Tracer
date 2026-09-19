@@ -24,7 +24,7 @@ __host__ __device__ float boxIntersectionTest(
             float t2 = (+0.5f - q.origin[xyz]) / qdxyz;
             float ta = glm::min(t1, t2);
             float tb = glm::max(t1, t2);
-            glm::vec3 n;
+            glm::vec3 n(0.0f);
             n[xyz] = t2 < t1 ? +1 : -1;
             if (ta > 0 && ta > tmin)
             {
