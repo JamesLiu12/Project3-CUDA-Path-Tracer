@@ -43,7 +43,8 @@ void checkCUDAErrorFn(const char* msg, const char* file, int line)
 #endif // ERRORCHECK
 }
 
-#define MATERIAL_SORTING 1
+#define MATERIAL_SORTING 0
+#define STOCHASTIC_SAMPLING 0
 
 __host__ __device__
 thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int depth)
@@ -149,10 +150,25 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
         segment.ray.origin = cam.position;
         segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
 
-        // TODO: implement antialiasing by jittering the ray
+        thrust::default_random_engine rng = makeSeededRandomEngine(iter, index, 0);
+        thrust::uniform_real_distribution<float> u01(0.0f, 1.0f);
+
+        float sampleX = static_cast<float>(x) + 0.5f;
+        float sampleY = static_cast<float>(y) + 0.5f;
+
+#if STOCHASTIC_SAMPLING
+        constexpr int gridSize = 4;
+        constexpr int numberOfCells = gridSize * gridSize;
+
+        int cell = (iter - 1) % numberOfCells;
+
+        sampleX = x + (cell % gridSize + u01(rng)) / static_cast<float>(gridSize);
+        sampleY = y + (cell / gridSize + u01(rng)) / static_cast<float>(gridSize);
+#endif
+
         segment.ray.direction = glm::normalize(cam.view
-            - cam.right * cam.pixelLength.x * ((float)x - (float)cam.resolution.x * 0.5f)
-            - cam.up * cam.pixelLength.y * ((float)y - (float)cam.resolution.y * 0.5f)
+            - cam.right * cam.pixelLength.x * (sampleX - (float)cam.resolution.x * 0.5f)
+            - cam.up * cam.pixelLength.y * (sampleY - (float)cam.resolution.y * 0.5f)
         );
 
         segment.pixelIndex = index;
