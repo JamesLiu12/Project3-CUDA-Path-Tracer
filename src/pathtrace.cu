@@ -43,6 +43,8 @@ void checkCUDAErrorFn(const char* msg, const char* file, int line)
 #endif // ERRORCHECK
 }
 
+#define MATERIAL_SORTING 1
+
 __host__ __device__
 thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int depth)
 {
@@ -174,6 +176,8 @@ __global__ void computeIntersections(
 
     if (path_index < num_paths)
     {
+        memset(intersections + path_index, 0, sizeof(ShadeableIntersection));
+
         PathSegment pathSegment = pathSegments[path_index];
 
         float t;
@@ -299,11 +303,19 @@ __global__ void finalGather(int nPaths, glm::vec3* image, PathSegment* iteration
     }
 }
 
-static struct IsPathAlive
+struct IsPathAlive
 {
     __host__ __device__ bool operator()(const PathSegment& path) const
     {
         return path.remainingBounces > 0;
+    }
+};
+
+struct IntersectionComparer
+{
+    __host__ __device__ bool operator()(const ShadeableIntersection& a, const ShadeableIntersection& b) const
+    {
+        return (a.t > 0.0f ? a.materialId : -1) < (b.t > 0.0f ? b.materialId : -1);
     }
 };
 
@@ -383,14 +395,14 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         cudaDeviceSynchronize();
         depth++;
 
-        // TODO:
         // --- Shading Stage ---
         // Shade path segments based on intersections and generate new rays by
         // evaluating the BSDF.
-        // Start off with just a big kernel that handles all the different
-        // materials you have in the scenefile.
-        // TODO: compare between directly shading the path segments and shading
-        // path segments that have been reshuffled to be contiguous in memory.
+
+#if MATERIAL_SORTING
+        thrust::sort_by_key(thrust::device, dev_intersections, dev_intersections + num_paths, dev_paths, IntersectionComparer{});
+        checkCUDAError("sort by material");
+#endif
 
         shadeFakeMaterial<<<numblocksPathSegmentTracing, blockSize1d>>>(
             iter,
@@ -405,6 +417,8 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         }
         else {
             PathSegment* dev_pathEnd = thrust::partition(thrust::device, dev_paths, dev_paths + num_paths, IsPathAlive{});
+            checkCUDAError("path partition");
+
             num_paths = static_cast<int>(dev_pathEnd - dev_paths);
             iterationComplete = num_paths == 0;
         }
