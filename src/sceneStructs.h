@@ -6,13 +6,39 @@
 
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #define BACKGROUND_COLOR (glm::vec3(0.0f))
 
-enum GeomType
+enum class GeomType
 {
     SPHERE,
-    CUBE
+    CUBE,
+    Mesh
+};
+
+enum class AlphaMode
+{
+    Opaque,
+    Mask,
+    Blend
+};
+
+enum class WrapMode
+{
+    Repeat,
+    ClampToEdge,
+    MirroredRepeat
+};
+
+enum class FilterMode
+{
+    Nearest,
+    Linear,
+    NearestMipmapNearest,
+    LinearMipmapNearest,
+    NearestMipmapLinear,
+    LinearMipmapLinear
 };
 
 struct Ray
@@ -31,14 +57,86 @@ struct Geom
     glm::mat4 transform;
     glm::mat4 inverseTransform;
     glm::mat4 invTranspose;
+
+    int primitiveId = -1;
+};
+
+struct Vertex
+{
+    glm::vec3 position{ 0.0f };
+    glm::vec3 normal{ 0.0f };
+    glm::vec4 tangent{ 0.0f };
+    glm::vec4 color{ 1.0f };
+};
+
+struct Triangle
+{
+    uint32_t indices[3]{};
+};
+
+struct MeshPrimitive
+{
+    int vertexOffset = 0;
+    int vertexCount = 0;
+
+    int triangleOffset = 0;
+    int triangleCount = 0;
+
+    int texcoordOffset = 0;
+    int texcoordSetCount = 0;
+
+    bool hasNormals = false;
+    bool hasTangents = false;
+};
+
+struct TextureRef
+{
+    int textureId = -1;
+    int texCoord = 0;
+
+    glm::mat3 uvTransform{ 1.0f };
+};
+
+struct TextureImage
+{
+    int width = 0;
+    int height = 0;
+
+    int texelOffset = 0;
+};
+
+struct Texture
+{
+    int imageId = -1;
+
+    WrapMode wrapU = WrapMode::Repeat;
+    WrapMode wrapV = WrapMode::Repeat;
+
+    FilterMode minFilter = FilterMode::Linear;
+    FilterMode magFilter = FilterMode::Linear;
 };
 
 struct Material
 {
-    glm::vec3 albedo = glm::vec3(0.0f);
-    float metalness = 0.0f;
-    float roughness = 0.5f;
+    glm::vec3 albedo = glm::vec3{ 1.0f };
+    float alpha = 1.0f;
+
+    float metalness = 1.0f;
+    float roughness = 1.0f;
+
     glm::vec3 emittance = glm::vec3(0.0f);
+
+    TextureRef baseColorTexture;
+    TextureRef metallicRoughnessTexture;
+    TextureRef normalTexture;
+    TextureRef occlusionTexture;
+    TextureRef emissiveTexture;
+
+    float normalScale = 1.0f;
+    float occlusionStrength = 1.0f;
+    AlphaMode alphaMode = AlphaMode::Opaque;
+    float alphaCutoff = 0.5f;
+    bool doubleSided = false;
 };
 
 struct Camera
@@ -76,7 +174,12 @@ struct PathSegment
 // 2) BSDF evaluation: generate a new ray
 struct ShadeableIntersection
 {
-  float t;
-  glm::vec3 surfaceNormal;
-  int materialId;
+    float t;
+    glm::vec3 surfaceNormal;
+    int materialId;
+
+    int geomId = -1;
+    int triangleId = -1;
+    glm::vec2 barycentrics{ 0.0f };
+    glm::vec3 geometricNormal{ 0.0f };
 };

@@ -31,6 +31,21 @@ Scene::Scene(string filename)
     }
 }
 
+static glm::vec3 readVec3(const json& p, const char* name, glm::vec3 fallback)
+{
+    if (!p.contains(name))
+    {
+        return fallback;
+    }
+
+    const auto& value = p.at(name);
+
+    return glm::vec3(
+        value.at(0).get<float>(),
+        value.at(1).get<float>(),
+        value.at(2).get<float>());
+}
+
 void Scene::loadFromJSON(const std::string& jsonName)
 {
     std::ifstream f(jsonName);
@@ -71,19 +86,35 @@ void Scene::loadFromJSON(const std::string& jsonName)
         Geom newGeom;
         if (type == "cube")
         {
-            newGeom.type = CUBE;
+            newGeom.type = GeomType::CUBE;
         }
-        else
+        else if (type == "sphere")
         {
-            newGeom.type = SPHERE;
+            newGeom.type = GeomType::SPHERE;
+        }
+        else if (type == "mesh")
+        {
+            if (!p.contains("FILENAME"))
+            {
+                throw std::runtime_error("Mesh object is missing FILENAME.");
+            }
+
+            const glm::vec3 translation = readVec3(p, "TRANS", glm::vec3(0.0f));
+            const glm::vec3 rotation = readVec3(p, "ROTAT", glm::vec3(0.0f));
+            const glm::vec3 scale = readVec3(p, "SCALE", glm::vec3(1.0f));
+
+            const glm::mat4 rootTransform =
+                utilityCore::buildTransformationMatrix(
+                    translation, rotation, scale);
+
+            loadFromGLTF(p["FILENAME"], rootTransform);
+
+            continue;
         }
         newGeom.materialid = MatNameToID[p["MATERIAL"]];
-        const auto& trans = p["TRANS"];
-        const auto& rotat = p["ROTAT"];
-        const auto& scale = p["SCALE"];
-        newGeom.translation = glm::vec3(trans[0], trans[1], trans[2]);
-        newGeom.rotation = glm::vec3(rotat[0], rotat[1], rotat[2]);
-        newGeom.scale = glm::vec3(scale[0], scale[1], scale[2]);
+        newGeom.translation = readVec3(p, "TRANS", glm::vec3(0.0f));
+        newGeom.rotation = readVec3(p, "ROTAT", glm::vec3(0.0f));
+        newGeom.scale = readVec3(p, "SCALE", glm::vec3(1.0f));
         newGeom.transform = utilityCore::buildTransformationMatrix(
             newGeom.translation, newGeom.rotation, newGeom.scale);
         newGeom.inverseTransform = glm::inverse(newGeom.transform);
@@ -123,4 +154,9 @@ void Scene::loadFromJSON(const std::string& jsonName)
     int arraylen = camera.resolution.x * camera.resolution.y;
     state.image.resize(arraylen);
     std::fill(state.image.begin(), state.image.end(), glm::vec3());
+}
+
+void Scene::loadFromGLTF(const std::string& filename, const glm::mat4& rootTransform)
+{
+
 }

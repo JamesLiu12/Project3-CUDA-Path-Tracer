@@ -213,11 +213,11 @@ __global__ void computeIntersections(
         {
             Geom& geom = geoms[i];
 
-            if (geom.type == CUBE)
+            if (geom.type == GeomType::CUBE)
             {
                 t = boxIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
             }
-            else if (geom.type == SPHERE)
+            else if (geom.type == GeomType::SPHERE)
             {
                 t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
             }
