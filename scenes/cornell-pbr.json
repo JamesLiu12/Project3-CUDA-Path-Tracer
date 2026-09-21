@@ -8,15 +8,21 @@
         },
         "diffuse_white":
         {
-            "ALBEDO":[0.98, 0.98, 0.98]
+            "ALBEDO":[0.98, 0.98, 0.98],
+            "METALNESS":0.0,
+            "ROUGHNESS":0.5
         },
         "diffuse_red":
         {
-            "ALBEDO":[0.85, 0.35, 0.35]
+            "ALBEDO":[0.85, 0.35, 0.35],
+            "METALNESS":0.0,
+            "ROUGHNESS":0.5
         },
         "diffuse_green":
         {
-            "ALBEDO":[0.35, 0.85, 0.35]
+            "ALBEDO":[0.35, 0.85, 0.35],
+            "METALNESS":0.0,
+            "ROUGHNESS":0.5
         },
         "specular_white":
         {
@@ -89,7 +95,7 @@
         },
         {
             "TYPE":"model",
-            "FILEPATH":"scenes/models/DragonDispersion.glb"
+            "FILEPATH":"scenes/models/Duck.glb"
         }
     ]
 }
