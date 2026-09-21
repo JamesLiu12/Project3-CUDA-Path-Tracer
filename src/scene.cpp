@@ -99,7 +99,7 @@ void Scene::loadFromJSON(const std::string& jsonName)
         {
             newGeom.type = GeomType::SPHERE;
         }
-        else if (type == "mesh")
+        else if (type == "model")
         {
             if (!p.contains("FILEPATH"))
             {
