@@ -3,7 +3,8 @@
     {
         "light":
         {
-            "EMITTANCE":[5.0, 5.0, 5.0]
+            "EMITTANCE":[10.0, 10.0, 10.0],
+            "ALBEDO":[1.0, 1.0, 0.0]
         },
         "diffuse_white":
         {
@@ -20,8 +21,8 @@
         "specular_white":
         {
             "ALBEDO":[0.98, 0.98, 0.98],
-            "METALNESS":0.5,
-            "ROUGHNESS":0.1
+            "METALNESS":0.1,
+            "ROUGHNESS":0.0
         }
     },
     "Camera":
@@ -85,6 +86,10 @@
             "TRANS":[-1.0,4.0,-1.0],
             "ROTAT":[0.0,0.0,0.0],
             "SCALE":[3.0,3.0,3.0]
+        },
+        {
+            "TYPE":"model",
+            "FILEPATH":"scenes/models/DragonDispersion.glb"
         }
     ]
 }

@@ -111,3 +111,55 @@ __host__ __device__ float sphereIntersectionTest(
 
     return glm::length(r.origin - intersectionPoint);
 }
+
+__host__ __device__ float meshIntersectionTest(
+    Geom mesh,
+    Ray r,
+    const MeshPrimitive* primitives,
+    const Vertex* vertices,
+    const Triangle* triangles,
+    glm::vec3& intersectionPoint,
+    glm::vec3& normal,
+    bool& outside)
+{
+    Ray q;
+    q.origin = multiplyMV(mesh.inverseTransform, glm::vec4(r.origin, 1.0f));
+    q.direction = glm::normalize(multiplyMV(mesh.inverseTransform, glm::vec4(r.direction, 0.0f)));
+
+    const MeshPrimitive& primitive = primitives[mesh.primitiveId];
+    float tmin = 1e38f;
+    glm::vec3 tmin_n, faceNormal;
+
+    for (int i = 0; i < primitive.triangleCount; ++i)
+    {
+        const Triangle& triangle = triangles[primitive.triangleOffset + i];
+
+        const Vertex& v0 = vertices[triangle.indices[0]];
+        const Vertex& v1 = vertices[triangle.indices[1]];
+        const Vertex& v2 = vertices[triangle.indices[2]];
+
+        glm::vec3 hit;
+        if (!glm::intersectLineTriangle(q.origin, q.direction, v0.position, v1.position, v2.position, hit)
+            || hit.x <= 0.0f || hit.x >= tmin)
+            continue;
+
+        tmin = hit.x;
+        faceNormal = glm::cross(v1.position - v0.position, v2.position - v0.position);
+        tmin_n = primitive.hasNormals
+            ? (1.0f - hit.y - hit.z) * v0.normal + hit.y * v1.normal + hit.z * v2.normal
+            : faceNormal;
+
+        if (glm::dot(tmin_n, tmin_n) == 0.0f) tmin_n = faceNormal;
+        if (glm::dot(tmin_n, faceNormal) < 0.0f) tmin_n = -tmin_n;
+    }
+
+    if (tmin == 1e38f) return -1;
+
+    outside = glm::dot(q.direction, faceNormal) < 0.0f;
+    intersectionPoint = multiplyMV(mesh.transform, glm::vec4(getPointOnRay(q, tmin), 1.0f));
+    normal = glm::normalize(multiplyMV(mesh.invTranspose, glm::vec4(tmin_n, 0.0f)));
+
+    if (!outside) normal = -normal;
+
+    return glm::length(r.origin - intersectionPoint);
+}
