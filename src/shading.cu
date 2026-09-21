@@ -1,5 +1,3 @@
-#pragma once
-
 #include "shading.h"
 
 __host__ __device__ int wrapTexel(int i, int size, WrapMode mode)
