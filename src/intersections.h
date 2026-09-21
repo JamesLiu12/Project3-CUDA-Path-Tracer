@@ -80,4 +80,5 @@ __host__ __device__ float meshIntersectionTest(
     const Triangle* triangles,
     glm::vec3& intersectionPoint,
     glm::vec3& normal,
-    bool& outside);
+    bool& outside,
+    ShadeableIntersection& hitInfo);

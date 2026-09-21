@@ -120,7 +120,8 @@ __host__ __device__ float meshIntersectionTest(
     const Triangle* triangles,
     glm::vec3& intersectionPoint,
     glm::vec3& normal,
-    bool& outside)
+    bool& outside,
+    ShadeableIntersection& hitInfo)
 {
     Ray q;
     q.origin = multiplyMV(mesh.inverseTransform, glm::vec4(r.origin, 1.0f));
@@ -144,6 +145,8 @@ __host__ __device__ float meshIntersectionTest(
             continue;
 
         tmin = hit.x;
+        hitInfo.triangleId = primitive.triangleOffset + i;
+        hitInfo.barycentrics = glm::vec2(hit.y, hit.z);
         faceNormal = glm::cross(v1.position - v0.position, v2.position - v0.position);
         tmin_n = primitive.hasNormals
             ? (1.0f - hit.y - hit.z) * v0.normal + hit.y * v1.normal + hit.z * v2.normal
@@ -155,8 +158,9 @@ __host__ __device__ float meshIntersectionTest(
 
     if (tmin == 1e38f) return -1;
 
-    outside = glm::dot(q.direction, faceNormal) < 0.0f;
-    intersectionPoint = multiplyMV(mesh.transform, glm::vec4(getPointOnRay(q, tmin), 1.0f));
+    hitInfo.geometricNormal = glm::normalize(multiplyMV(mesh.invTranspose, glm::vec4(faceNormal, 0)));
+    outside = glm::dot(r.direction, hitInfo.geometricNormal) < 0.0f;
+    intersectionPoint = multiplyMV(mesh.transform, glm::vec4(q.origin + tmin * q.direction, 1.0f));
     normal = glm::normalize(multiplyMV(mesh.invTranspose, glm::vec4(tmin_n, 0.0f)));
 
     if (!outside) normal = -normal;
