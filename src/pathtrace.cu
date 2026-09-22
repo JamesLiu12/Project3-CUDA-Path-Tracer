@@ -16,6 +16,7 @@
 #include "intersections.h"
 #include "interactions.h"
 #include "shading.h"
+#include "bvh.h"
 
 #define ERRORCHECK 1
 
@@ -46,6 +47,7 @@ void checkCUDAErrorFn(const char* msg, const char* file, int line)
 
 #define MATERIAL_SORTING 0
 #define STOCHASTIC_SAMPLING 1
+#define USE_BVH 1
 
 __host__ __device__
 thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int depth)
@@ -92,8 +94,9 @@ static glm::vec4* dev_texels = NULL;
 static Material* dev_materials = NULL;
 static PathSegment* dev_paths = NULL;
 static ShadeableIntersection* dev_intersections = NULL;
-// TODO: static variables for device memory, any extra info you need, etc
-// ...
+static BVHNode* dev_bvhNodes = nullptr;
+static PrimitiveRef* dev_bvhRefs = nullptr;
+static int bvhNodeCount = 0;
 
 void InitDataContainer(GuiDataContainer* imGuiData)
 {
@@ -144,6 +147,23 @@ void pathtraceInit(Scene* scene)
         cudaMemcpy(dev_texels, scene->texels.data(), scene->texels.size() * sizeof(glm::vec4), cudaMemcpyHostToDevice);
     }
 
+#if USE_BVH
+    BVH bvh;
+    bvh.build(*scene);
+    bvhNodeCount = int(bvh.nodes.size());
+
+    if (bvhNodeCount > 0) {
+        size_t nodeBytes = bvh.nodes.size() * sizeof(BVHNode);
+        size_t refBytes = bvh.primitiveRefs.size() * sizeof(PrimitiveRef);
+
+        cudaMalloc(&dev_bvhNodes, nodeBytes);
+        cudaMemcpy(dev_bvhNodes, bvh.nodes.data(), nodeBytes, cudaMemcpyHostToDevice);
+
+        cudaMalloc(&dev_bvhRefs, refBytes);
+        cudaMemcpy(dev_bvhRefs, bvh.primitiveRefs.data(), refBytes, cudaMemcpyHostToDevice);
+    }
+#endif
+
     checkCUDAError("pathtraceInit");
 }
 
@@ -161,6 +181,11 @@ void pathtraceFree()
     cudaFree(dev_textures);
     cudaFree(dev_textureImages);
     cudaFree(dev_texels);
+#if USE_BVH
+    cudaFree(dev_bvhNodes);
+    cudaFree(dev_bvhRefs);
+    bvhNodeCount = 0;
+#endif
 
     checkCUDAError("pathtraceFree");
 }
@@ -212,10 +237,28 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
     }
 }
 
-// TODO:
-// computeIntersections handles generating ray intersections ONLY.
-// Generating new rays is handled in your shader(s).
-// Feel free to modify the code below.
+__global__ void computeIntersectionsBVH(
+    int num_paths,
+    const PathSegment* pathSegments,
+    const BVHNode* nodes,
+    const PrimitiveRef* refs,
+    int nodeCount,
+    const Geom* geoms,
+    const MeshPrimitive* primitives,
+    const Vertex* vertices,
+    const Triangle* triangles,
+    ShadeableIntersection* intersections)
+{
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (index < num_paths) {
+        intersections[index] = bvhIntersectionTest(
+            pathSegments[index].ray,
+            nodes, refs, nodeCount,
+            geoms, primitives, vertices, triangles);
+    }
+}
+
 __global__ void computeIntersections(
     int depth,
     int num_paths,
@@ -463,7 +506,22 @@ void pathtrace(uchar4* pbo, int frame, int iter)
     {
         // tracing
         dim3 numblocksPathSegmentTracing = (num_paths + blockSize1d - 1) / blockSize1d;
-        computeIntersections<<<numblocksPathSegmentTracing, blockSize1d>>> (
+
+#if USE_BVH
+        computeIntersectionsBVH<<<numblocksPathSegmentTracing, blockSize1d>>>(
+            num_paths,
+            dev_paths,
+            dev_bvhNodes,
+            dev_bvhRefs,
+            bvhNodeCount,
+            dev_geoms,
+            dev_primitives,
+            dev_vertices,
+            dev_triangles,
+            dev_intersections
+            );
+#else
+        computeIntersections<<<numblocksPathSegmentTracing, blockSize1d>>>(
             depth,
             num_paths,
             dev_paths,
@@ -473,7 +531,9 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             dev_vertices,
             dev_triangles,
             dev_intersections
-        );
+            );
+#endif
+
         checkCUDAError("trace one bounce");
         cudaDeviceSynchronize();
         depth++;
