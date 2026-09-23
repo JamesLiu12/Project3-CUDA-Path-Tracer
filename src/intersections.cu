@@ -26,7 +26,7 @@ __host__ __device__ float boxIntersectionTest(
             float tb = glm::max(t1, t2);
             glm::vec3 n(0.0f);
             n[xyz] = t2 < t1 ? +1 : -1;
-            if (ta > 0 && ta > tmin)
+            if (ta > tmin)
             {
                 tmin = ta;
                 tmin_n = n;
@@ -34,7 +34,7 @@ __host__ __device__ float boxIntersectionTest(
             if (tb < tmax)
             {
                 tmax = tb;
-                tmax_n = n;
+                tmax_n = -n;
             }
         }
     }
@@ -104,10 +104,6 @@ __host__ __device__ float sphereIntersectionTest(
 
     intersectionPoint = multiplyMV(sphere.transform, glm::vec4(objspaceIntersection, 1.f));
     normal = glm::normalize(multiplyMV(sphere.invTranspose, glm::vec4(objspaceIntersection, 0.f)));
-    if (!outside)
-    {
-        normal = -normal;
-    }
 
     return glm::length(r.origin - intersectionPoint);
 }

@@ -106,6 +106,8 @@ __host__ __device__ void evaluateMaterial(
     material.metalness *= mr.b;
     material.emittance *= glm::vec3(sampleTexture(material.emissiveTexture, primitive, triangle, w, texcoords, textures, images, texels, true));
 
+    material.transmission *= sampleTexture(material.transmissionTexture, primitive, triangle, w, texcoords, textures, images, texels, false).r;
+
     const TextureRef& textureRef = material.normalTexture;
 
     if (textureRef.textureId < 0 || textureRef.texCoord >= primitive.texcoordSetCount) {

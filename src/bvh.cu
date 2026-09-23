@@ -269,6 +269,8 @@ __device__ ShadeableIntersection bvhIntersectionTest(
                     hit.t = sphereIntersectionTest(
                         geom, ray, point, hit.surfaceNormal, outside);
                 }
+
+                hit.geometricNormal = hit.surfaceNormal;
             }
 
             if (hit.t > 0.0f && hit.t < closest) {

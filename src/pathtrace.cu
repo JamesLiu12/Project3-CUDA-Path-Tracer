@@ -313,6 +313,9 @@ __global__ void computeIntersections(
             // scene geometry object was hit first.
             if (t > 0.0f && t_min > t)
             {
+                if (geom.type != GeomType::Mesh) 
+                    hitInfo.geometricNormal = tmp_normal;
+
                 intersections[path_index] = hitInfo;
                 t_min = t;
                 hit_geom_index = i;
