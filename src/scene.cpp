@@ -83,6 +83,15 @@ void Scene::loadFromJSON(const std::string& jsonName)
             newMaterial.emittance = glm::vec3(e[0], e[1], e[2]);
         }
 
+        newMaterial.transmission = p.value("TRANSMISSION", 0.0f);
+        newMaterial.ior = p.value("IOR", 1.5f);
+        newMaterial.thinWalled = p.value("THIN_WALLED", false);
+
+        if (p.contains("ATTENUATION_DISTANCE")) {
+            newMaterial.attenuationColor = readVec3(p, "ATTENUATION_COLOR", glm::vec3(1.0f));
+            newMaterial.attenuationDistance = p["ATTENUATION_DISTANCE"].get<float>();
+        }
+
         MatNameToID[name] = materials.size();
         materials.emplace_back(newMaterial);
     }
@@ -342,6 +351,58 @@ void Scene::loadFromGLTF(const std::string& filename, const glm::mat4& rootTrans
             : material.alphaMode == "BLEND" ? AlphaMode::Blend : AlphaMode::Opaque;
         result.alphaCutoff = float(material.alphaCutoff);
         result.doubleSided = material.doubleSided;
+
+        result.thinWalled = true;
+
+        auto transmission = material.extensions.find("KHR_materials_transmission");
+        if (transmission != material.extensions.end()) {
+            const auto& ext = transmission->second;
+
+            if (ext.Has("transmissionFactor"))
+                result.transmission =
+                float(ext.Get("transmissionFactor").GetNumberAsDouble());
+
+            if (ext.Has("transmissionTexture")) {
+                const auto& texture = ext.Get("transmissionTexture");
+                tinygltf::TextureInfo info;
+
+                info.index = texture.Get("index").GetNumberAsInt();
+
+                if (texture.Has("texCoord"))
+                    info.texCoord = texture.Get("texCoord").GetNumberAsInt();
+
+                if (texture.Has("extensions"))
+                    info.extensions =
+                    texture.Get("extensions").Get<tinygltf::Value::Object>();
+
+                result.transmissionTexture = readTexture(info, textureOffset);
+            }
+        }
+
+        auto ior = material.extensions.find("KHR_materials_ior");
+        if (ior != material.extensions.end() && ior->second.Has("ior"))
+            result.ior = float(ior->second.Get("ior").GetNumberAsDouble());
+
+        auto volume = material.extensions.find("KHR_materials_volume");
+        if (volume != material.extensions.end()) {
+            const auto& ext = volume->second;
+
+            if (ext.Has("thicknessFactor"))
+                result.thinWalled =
+                ext.Get("thicknessFactor").GetNumberAsDouble() == 0.0;
+
+            if (ext.Has("attenuationDistance")) {
+                glm::vec3 color(1.0f);
+
+                if (ext.Has("attenuationColor"))
+                    for (int i = 0; i < 3; ++i)
+                        result.attenuationColor[i] = float(
+                            ext.Get("attenuationColor").Get(i).GetNumberAsDouble());
+
+                result.attenuationDistance = float(ext.Get("attenuationDistance").GetNumberAsDouble());
+            }
+        }
+
         materials.push_back(result);
     }
 

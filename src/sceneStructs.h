@@ -131,12 +131,19 @@ struct Material
     TextureRef normalTexture;
     TextureRef occlusionTexture;
     TextureRef emissiveTexture;
+    TextureRef transmissionTexture;
 
     float normalScale = 1.0f;
     float occlusionStrength = 1.0f;
     AlphaMode alphaMode = AlphaMode::Opaque;
     float alphaCutoff = 0.5f;
     bool doubleSided = false;
+
+    float transmission = 0.0f;
+    float ior = 1.5f;
+    bool thinWalled = false;
+    glm::vec3 attenuationColor = glm::vec3(1.0f);
+    float attenuationDistance = INFINITY;
 };
 
 struct Camera
