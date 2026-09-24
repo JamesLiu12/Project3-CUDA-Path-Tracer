@@ -174,6 +174,8 @@ struct PathSegment
     glm::vec3 throughput;
     int pixelIndex;
     int remainingBounces;
+
+    glm::vec3 sigmaA{ 0.0f };
 };
 
 // Use with a corresponding PathSegment to do:

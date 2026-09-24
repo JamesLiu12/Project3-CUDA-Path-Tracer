@@ -210,6 +210,7 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
         segment.ray.origin = cam.position;
         segment.radiance = glm::vec3(0.0f);
         segment.throughput = glm::vec3(1.0f);
+        segment.sigmaA = glm::vec3(0.0f);
 
         thrust::default_random_engine rng = makeSeededRandomEngine(iter, index, 0);
         thrust::uniform_real_distribution<float> u01(0.0f, 1.0f);
@@ -378,14 +379,19 @@ __global__ void shadeMaterial(
     glm::vec3 normal = intersection.surfaceNormal;
     glm::vec3 intersectPoint = pathSegment.ray.origin + pathSegment.ray.direction * intersection.t;
 
+    bool volumeBoundary = !material.thinWalled && material.transmission > 0.0f;
+
     evaluateMaterial(material, normal, intersection, geoms, primitives, vertices, triangles,
                      texcoords, textures, images, texels);
 
     thrust::default_random_engine rng = makeSeededRandomEngine(iter, pathSegment.pixelIndex, depth);
     thrust::uniform_real_distribution<float> u01(0, 1);
 
-    bool skip = intersection.triangleId >= 0 && !material.doubleSided
-        && glm::dot(pathSegment.ray.direction, intersection.geometricNormal) >= 0;
+    bool skip = intersection.triangleId >= 0
+        && !material.doubleSided
+        && !volumeBoundary
+        && glm::dot(pathSegment.ray.direction,
+            intersection.geometricNormal) >= 0.0f;
     skip |= material.alphaMode == AlphaMode::Mask && material.alpha < material.alphaCutoff;
     skip |= material.alphaMode == AlphaMode::Blend && u01(rng) >= material.alpha;
 
@@ -394,27 +400,20 @@ __global__ void shadeMaterial(
         return;
     }
 
+    pathSegment.throughput *= glm::exp(-pathSegment.sigmaA * intersection.t);
+
     pathSegment.radiance += pathSegment.throughput * material.emittance;
 
-    if (pathSegment.remainingBounces <= 1)
-    {
-        pathSegment.remainingBounces = 0;
-    }
-    else {
-        glm::vec3 n = intersection.geometricNormal;
-        if (glm::dot(n, pathSegment.ray.direction) > 0) n = -n;
+    if (--pathSegment.remainingBounces == 0)
+        return;
 
-        scatterRay(pathSegment, intersectPoint, normal, material, rng);
-
-        if (intersection.triangleId >= 0 && pathSegment.remainingBounces > 0) {
-            if (glm::dot(n, pathSegment.ray.direction) <= 0) pathSegment.remainingBounces = 0;
-            pathSegment.ray.origin = intersectPoint + 1e-3f * n;
-        }
-
-        if (pathSegment.remainingBounces > 0) {
-            pathSegment.remainingBounces--;
-        }
-    }
+    scatterRay(
+        pathSegment,
+        intersectPoint,
+        normal,
+        intersection.geometricNormal,
+        material,
+        rng);
 }
 
 // Add the current iteration's output to the overall image
