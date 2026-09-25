@@ -145,6 +145,23 @@ void Scene::loadFromJSON(const std::string& jsonName)
 
         geoms.push_back(newGeom);
     }
+
+    if (data.contains("Environment")) {
+        const auto& envData = data["Environment"];
+
+        environment.intensity = envData["INTENSITY"].get<float>();
+        environment.rotation = envData["ROTATION"].get<float>();
+
+        int channels;
+        stbi_set_flip_vertically_on_load(false);
+        float* pixels = stbi_loadf(toJsonRelativePath(jsonName, envData["FILEPATH"]).c_str(), 
+            &environment.size.x, &environment.size.y, &channels, 4);
+
+        size_t count = size_t(environment.size.x) * environment.size.y * 4;
+        environment.pixels.assign(pixels, pixels + count);
+        stbi_image_free(pixels);
+    }
+
     const auto& cameraData = data["Camera"];
     Camera& camera = state.camera;
     RenderState& state = this->state;

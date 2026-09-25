@@ -192,3 +192,11 @@ struct ShadeableIntersection
     glm::vec2 barycentrics{ 0.0f };
     glm::vec3 geometricNormal{ 0.0f };
 };
+
+struct Environment
+{
+    glm::ivec2 size{ 0 };
+    std::vector<float> pixels;
+    float intensity = 1.0f;
+    float rotation = 0.0f;
+};

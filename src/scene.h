@@ -24,4 +24,6 @@ public:
     std::vector<TextureImage> textureImages;
     std::vector<Texture> textures;
     std::vector<glm::vec4> texels;
+
+    Environment environment;
 };

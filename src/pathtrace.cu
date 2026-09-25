@@ -97,6 +97,7 @@ static ShadeableIntersection* dev_intersections = NULL;
 static BVHNode* dev_bvhNodes = nullptr;
 static PrimitiveRef* dev_bvhRefs = nullptr;
 static int bvhNodeCount = 0;
+static float* dev_envPixels = nullptr;
 
 void InitDataContainer(GuiDataContainer* imGuiData)
 {
@@ -164,6 +165,11 @@ void pathtraceInit(Scene* scene)
     }
 #endif
 
+    if (!scene->environment.pixels.empty()) {
+        cudaMalloc(&dev_envPixels, scene->environment.pixels.size() * sizeof(float));
+        cudaMemcpy(dev_envPixels, scene->environment.pixels.data(), bytes, cudaMemcpyHostToDevice);
+    }
+
     checkCUDAError("pathtraceInit");
 }
 
@@ -186,6 +192,8 @@ void pathtraceFree()
     cudaFree(dev_bvhRefs);
     bvhNodeCount = 0;
 #endif
+
+    cudaFree(dev_envPixels);
 
     checkCUDAError("pathtraceFree");
 }
@@ -340,6 +348,30 @@ __global__ void computeIntersections(
     }
 }
 
+__device__ glm::vec3 sampleEnvironment(
+    const float* pixels,
+    glm::ivec2 size,
+    glm::vec3 direction,
+    float rotation)
+{
+    direction = glm::normalize(direction);
+
+    float u = atan2f(direction.z, direction.x) / (2.0f * PI)
+        + 0.5f + rotation / 360.0f;
+    float v = acosf(glm::clamp(direction.y, -1.0f, 1.0f)) / PI;
+
+    u -= floorf(u);
+
+    int x = glm::clamp(int(u * size.x), 0, size.x - 1);
+    int y = glm::clamp(int(v * size.y), 0, size.y - 1);
+    int index = (y * size.x + x) * 4;
+
+    return glm::vec3(
+        pixels[index],
+        pixels[index + 1],
+        pixels[index + 2]);
+}
+
 __global__ void shadeMaterial(
     int iter,
     int num_paths,
@@ -354,7 +386,11 @@ __global__ void shadeMaterial(
     const glm::vec2* texcoords,
     const Texture* textures,
     const TextureImage* images,
-    const glm::vec4* texels)
+    const glm::vec4* texels,
+    const float* envPixels,
+    glm::ivec2 envSize,
+    float envIntensity,
+    float envRotation)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -371,6 +407,14 @@ __global__ void shadeMaterial(
     const ShadeableIntersection& intersection = shadeableIntersections[idx];
 
     if (intersection.t <= 0.0f) {
+        if (envPixels) {
+            glm::vec3 light = sampleEnvironment(envPixels, envSize,
+                pathSegment.ray.direction, envRotation);
+
+            pathSegment.radiance +=
+                pathSegment.throughput * light * envIntensity;
+        }
+
         pathSegment.remainingBounces = 0;
         return;
     }
@@ -563,7 +607,11 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             dev_texcoords,
             dev_textures,
             dev_textureImages,
-            dev_texels
+            dev_texels,
+            dev_envPixels,
+            hst_scene->environment.size,
+            hst_scene->environment.intensity,
+            hst_scene->environment.rotation
         );
 
         PathSegment* pathEnd = thrust::partition(thrust::device, dev_paths, dev_paths + num_paths, IsPathAlive{});
