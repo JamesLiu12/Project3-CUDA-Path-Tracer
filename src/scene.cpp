@@ -17,6 +17,8 @@
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <filesystem>
+#include <stb_image.h>
 
 using namespace std;
 using json = nlohmann::json;
@@ -51,6 +53,11 @@ static glm::vec3 readVec3(const json& p, const char* name, glm::vec3 fallback)
         value.at(0).get<float>(),
         value.at(1).get<float>(),
         value.at(2).get<float>());
+}
+
+static std::string toJsonRelativePath(const std::string& jsonPath, const std::string& path)
+{
+    return (std::filesystem::path(jsonPath).parent_path() / path).string();
 }
 
 void Scene::loadFromJSON(const std::string& jsonName)
@@ -123,7 +130,7 @@ void Scene::loadFromJSON(const std::string& jsonName)
                 utilityCore::buildTransformationMatrix(
                     translation, rotation, scale);
 
-            loadFromGLTF(p["FILEPATH"], rootTransform);
+            loadFromGLTF(toJsonRelativePath(jsonName, p["FILEPATH"]), rootTransform);
 
             continue;
         }
