@@ -408,7 +408,8 @@ void saveImage()
 {
     float samples = iteration;
     // output image file
-    Image img(width, height);
+    Image png(width, height);
+    Image hdr(width, height);
 
     for (int x = 0; x < width; x++)
     {
@@ -416,7 +417,8 @@ void saveImage()
         {
             int index = x + (y * width);
             glm::vec3 color = renderState->image[index] / samples;
-            img.setPixel(width - 1 - x, y, toneMap(color, guiData->Exposure, guiData->EnableToneMapping));
+            png.setPixel(width - 1 - x, y, toneMap(color, guiData->Exposure, guiData->EnableToneMapping));
+            hdr.setPixel(width - 1 - x, y, color);
         }
     }
 
@@ -426,7 +428,8 @@ void saveImage()
     filename = ss.str();
 
     // CHECKITOUT
-    img.savePNG(filename);
+    png.savePNG(filename);
+    hdr.saveHDR(filename);
     //img.saveHDR(filename);  // Save a Radiance HDR file
 }
 
