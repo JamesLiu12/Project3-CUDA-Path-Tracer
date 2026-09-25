@@ -4,6 +4,8 @@
 
 #include <thrust/random.h>
 
+#define USE_GGX_VNDF 1
+
 __host__ __device__ static void computeTangents2(glm::vec3& tangent1, glm::vec3& tangent2, const glm::vec3& normal)
 {
     // Find a direction that is not the normal based off of whether or not the
@@ -105,6 +107,60 @@ __host__ __device__ static glm::vec3 sampleGGXNormal(const glm::vec3& normal, fl
     );
 }
 
+__host__ __device__ static glm::vec3 sampleGGXHalf(
+    const glm::vec3& normal, const glm::vec3& view, float alpha,
+    thrust::default_random_engine& rng)
+{
+#if USE_GGX_VNDF
+    glm::vec3 tangent1, tangent2;
+    computeTangents2(tangent1, tangent2, normal);
+
+    glm::vec3 localView(
+        glm::dot(view, tangent1),
+        glm::dot(view, tangent2),
+        glm::dot(view, normal)
+    );
+
+    glm::vec3 v = glm::normalize(glm::vec3(
+        alpha * localView.x, alpha * localView.y, localView.z));
+
+    glm::vec3 t1 = v.z < 0.99999f
+        ? glm::normalize(glm::vec3(-v.y, v.x, 0.0f))
+        : glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 t2 = glm::cross(v, t1);
+
+    thrust::uniform_real_distribution<float> u01(0, 1);
+    float r = sqrtf(u01(rng));
+    float phi = TWO_PI * u01(rng);
+    float x = r * cosf(phi);
+    float y = r * sinf(phi);
+    float s = 0.5f * (1.0f + v.z);
+    y = (1.0f - s) * sqrtf(glm::max(0.0f, 1.0f - x * x)) + s * y;
+
+    float z = sqrtf(glm::max(0.0f, 1.0f - x * x - y * y));
+    glm::vec3 h = x * t1 + y * t2 + z * v;
+
+    h = glm::normalize(glm::vec3(
+        alpha * h.x, alpha * h.y, glm::max(1e-6f, h.z)));
+
+    return glm::normalize(
+        tangent1 * h.x + tangent2 * h.y + normal * h.z);
+#else
+    return sampleGGXNormal(normal, alpha, rng);
+#endif
+}
+
+__host__ __device__ static float ggxNormalPdf(
+    float NdotH, float NdotV, float VdotH, float alpha)
+{
+    float D = ggxD(NdotH, alpha);
+#if USE_GGX_VNDF
+    return D * smithG1(NdotV, alpha) * VdotH / NdotV;
+#else
+    return D * NdotH;
+#endif
+}
+
 __host__ __device__ static float fresnelDielectric(float cosThetaIn, float eta)
 {
     if (eta == 0.0f) return 1.0f;
@@ -148,7 +204,7 @@ __host__ __device__ static DielectricSample sampleDielectric(
     float alpha = mat.roughness * mat.roughness;
     result.isDelta = alpha < 1e-3f || eta == 1.0f;
 
-    glm::vec3 half = result.isDelta ? normal : sampleGGXNormal(normal, alpha, rng);
+    glm::vec3 half = result.isDelta ? normal : sampleGGXHalf(normal, outDir, alpha, rng);
     float outHalf = glm::min(glm::dot(outDir, half), 1.0f);
     if (outHalf <= 0.0f) return {};
 
@@ -193,7 +249,7 @@ __host__ __device__ static DielectricSample sampleDielectric(
     float NdotH = glm::dot(normal, half);
     float D = ggxD(NdotH, alpha);
     float G = smithG1(cosOut, alpha) * smithG1(cosIn, alpha);
-    float pdfH = D * NdotH;
+    float pdfH = ggxNormalPdf(NdotH, cosOut, outHalf, alpha);
 
     if (!result.isTransmit || mat.thinWalled) {
         result.pdf = probability * pdfH / (4.0f * outHalf);
@@ -280,7 +336,7 @@ __host__ __device__ static void scatterOpaque(
     }
 
     if (u01(rng) < pSpecular) {
-        glm::vec3 half = sampleGGXNormal(normal, alpha, rng);
+        glm::vec3 half = sampleGGXHalf(normal, view, alpha, rng);
 
         if (glm::dot(view, half) <= 0.0f) {
             pathSegment.throughput = glm::vec3(0.0f);
@@ -315,7 +371,7 @@ __host__ __device__ static void scatterOpaque(
     glm::vec3 specular = D * G * F / (4.0f * NdotV * NdotL);
 
     float pdfDiffuse = NdotL / PI;
-    float pdfSpecular = D * NdotH / (4.0f * VdotH);
+    float pdfSpecular = ggxNormalPdf(NdotH, NdotV, VdotH, alpha) / (4.0f * VdotH);
 
     float pdf = (1.0f - pSpecular) * pdfDiffuse + pSpecular * pdfSpecular;
 
