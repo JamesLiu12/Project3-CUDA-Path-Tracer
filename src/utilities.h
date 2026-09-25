@@ -20,6 +20,8 @@ class GuiDataContainer
 public:
     GuiDataContainer() : TracedDepth(0) {}
     int TracedDepth;
+    float Exposure;
+    bool EnableToneMapping;
 };
 
 namespace utilityCore

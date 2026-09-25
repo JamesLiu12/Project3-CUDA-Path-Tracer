@@ -13,6 +13,7 @@
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_glfw.h"
 #include "ImGui/imgui_impl_opengl3.h"
+#include "tonemap.h"
 
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
@@ -286,6 +287,17 @@ void RenderImGui()
     //ImGui::Text("counter = %d", counter);
     ImGui::Text("Traced Depth %d", imguiData->TracedDepth);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+    ImGui::Separator();
+    ImGui::Text("ACES Filmic");
+    ImGui::Checkbox("Enable Tone Mapping", &imguiData->EnableToneMapping);
+    ImGui::SliderFloat("Exposure (EV)", &imguiData->Exposure, -5.0f, 5.0f, "%.2f");
+
+    if (ImGui::Button("Reset Exposure"))
+    {
+        imguiData->Exposure = 0.0f;
+    }
+
     ImGui::End();
 
 
@@ -403,8 +415,8 @@ void saveImage()
         for (int y = 0; y < height; y++)
         {
             int index = x + (y * width);
-            glm::vec3 pix = renderState->image[index];
-            img.setPixel(width - 1 - x, y, glm::vec3(pix) / samples);
+            glm::vec3 color = renderState->image[index] / samples;
+            img.setPixel(width - 1 - x, y, toneMap(color, guiData->Exposure, guiData->EnableToneMapping));
         }
     }
 

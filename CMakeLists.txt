@@ -59,6 +59,7 @@ set(headers
     src/utilities.h
     src/shading.h
     src/bvh.h
+    src/tonemap.h
 )
 
 set(sources
@@ -74,6 +75,7 @@ set(sources
     src/utilities.cpp
     src/shading.cu
     src/bvh.cu
+    src/tonemap.cu
 )
 
 set(imgui_headers

@@ -17,6 +17,7 @@
 #include "interactions.h"
 #include "shading.h"
 #include "bvh.h"
+#include "tonemap.h"
 
 #define ERRORCHECK 1
 
@@ -57,7 +58,7 @@ thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int de
 }
 
 //Kernel that writes the image to the OpenGL PBO directly.
-__global__ void sendImageToPBO(uchar4* pbo, glm::ivec2 resolution, int iter, glm::vec3* image)
+__global__ void sendImageToPBO(uchar4* pbo, glm::ivec2 resolution, int iter, glm::vec3* image, float exposure, bool enabled)
 {
     int x = (blockIdx.x * blockDim.x) + threadIdx.x;
     int y = (blockIdx.y * blockDim.y) + threadIdx.y;
@@ -65,18 +66,14 @@ __global__ void sendImageToPBO(uchar4* pbo, glm::ivec2 resolution, int iter, glm
     if (x < resolution.x && y < resolution.y)
     {
         int index = x + (y * resolution.x);
-        glm::vec3 pix = image[index];
 
-        glm::ivec3 color;
-        color.x = glm::clamp((int)(pix.x / iter * 255.0), 0, 255);
-        color.y = glm::clamp((int)(pix.y / iter * 255.0), 0, 255);
-        color.z = glm::clamp((int)(pix.z / iter * 255.0), 0, 255);
+        glm::vec3 color = toneMap(image[index] / float(iter), exposure, enabled);
 
-        // Each thread writes one pixel location in the texture (textel)
-        pbo[index].w = 0;
-        pbo[index].x = color.x;
-        pbo[index].y = color.y;
-        pbo[index].z = color.z;
+
+        pbo[index].x = (unsigned char)(color.x * 255.0f);
+        pbo[index].y = (unsigned char)(color.y * 255.0f);
+        pbo[index].z = (unsigned char)(color.z * 255.0f);
+        pbo[index].w = 255;
     }
 }
 
@@ -633,7 +630,7 @@ void pathtrace(uchar4* pbo, int frame, int iter)
     ///////////////////////////////////////////////////////////////////////////
 
     // Send results to OpenGL buffer for rendering
-    sendImageToPBO<<<blocksPerGrid2d, blockSize2d>>>(pbo, cam.resolution, iter, dev_image);
+    sendImageToPBO<<<blocksPerGrid2d, blockSize2d>>>(pbo, cam.resolution, iter, dev_image, guiData->Exposure, guiData->EnableToneMapping);
 
     // Retrieve image from GPU
     cudaMemcpy(hst_scene->state.image.data(), dev_image,
