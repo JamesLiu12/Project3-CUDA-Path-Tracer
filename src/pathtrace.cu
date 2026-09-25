@@ -167,7 +167,7 @@ void pathtraceInit(Scene* scene)
 
     if (!scene->environment.pixels.empty()) {
         cudaMalloc(&dev_envPixels, scene->environment.pixels.size() * sizeof(float));
-        cudaMemcpy(dev_envPixels, scene->environment.pixels.data(), bytes, cudaMemcpyHostToDevice);
+        cudaMemcpy(dev_envPixels, scene->environment.pixels.data(), scene->environment.pixels.size() * sizeof(float), cudaMemcpyHostToDevice);
     }
 
     checkCUDAError("pathtraceInit");
