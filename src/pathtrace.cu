@@ -479,9 +479,32 @@ struct IsPathAlive
 
 struct IntersectionComparer
 {
+    const Material* materials;
+
+    __host__ __device__ int group(const ShadeableIntersection& hit) const
+    {
+        if (hit.t <= 0.0f)
+            return -1;
+
+        const Material& mat = materials[hit.materialId];
+
+        int transmission = 0;
+        if (mat.transmission > 0.0f)
+            transmission = mat.thinWalled ? 1 : 2;
+
+        return int(mat.alphaMode) * 3 + transmission;
+    }
+
     __host__ __device__ bool operator()(const ShadeableIntersection& a, const ShadeableIntersection& b) const
     {
-        return (a.t > 0.0f ? a.materialId : -1) < (b.t > 0.0f ? b.materialId : -1);
+        int groupA = group(a);
+        int groupB = group(b);
+
+        return groupA != groupB
+            ? groupA < groupB
+            : groupA == -1
+            ? false
+            : a.materialId < b.materialId;
     }
 };
 
@@ -586,7 +609,8 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         // evaluating the BSDF.
 
 #if MATERIAL_SORTING
-        thrust::sort_by_key(thrust::device, dev_intersections, dev_intersections + num_paths, dev_paths, IntersectionComparer{});
+        thrust::sort_by_key(thrust::device, dev_intersections, dev_intersections + num_paths, 
+            dev_paths, IntersectionComparer{ dev_materials });
         checkCUDAError("sort by material");
 #endif
 
