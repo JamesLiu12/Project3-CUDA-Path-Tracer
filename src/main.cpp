@@ -298,6 +298,27 @@ void RenderImGui()
         imguiData->Exposure = 0.0f;
     }
 
+    ImGui::Separator();
+    ImGui::Text("Depth of Field");
+
+    Camera& cam = renderState->camera;
+    bool changed = ImGui::Checkbox("Enable DOF", &cam.enableDOF);
+    changed |= ImGui::SliderFloat(
+        "Lens Radius", &cam.lensRadius, 0.0f, 1.0f, "%.3f");
+    changed |= ImGui::SliderFloat(
+        "Focus Distance", &cam.focusDistance, 0.01f, 100.0f, "%.2f");
+
+    if (ImGui::Button("Focus on LookAt"))
+    {
+        cam.focusDistance = glm::length(cam.lookAt - cam.position);
+        changed = true;
+    }
+
+    if (changed)
+    {
+        iteration = 0;
+    }
+
     ImGui::End();
 
 
@@ -390,6 +411,7 @@ int main(int argc, char** argv)
     theta = glm::acos(glm::dot(glm::normalize(viewZY), glm::vec3(0, 1, 0)));
     ogLookAt = cam.lookAt;
     zoom = glm::length(cam.position - ogLookAt);
+    cam.focusDistance = zoom;
 
     // Initialize CUDA and GL components
     init();

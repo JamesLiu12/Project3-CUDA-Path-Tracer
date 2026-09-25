@@ -156,6 +156,10 @@ struct Camera
     glm::vec3 right;
     glm::vec2 fov;
     glm::vec2 pixelLength;
+
+    bool enableDOF = false;
+    float lensRadius = 0.05f;
+    float focusDistance = 5.0f;
 };
 
 struct RenderState

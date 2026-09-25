@@ -238,6 +238,21 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
             - cam.up * cam.pixelLength.y * (sampleY - (float)cam.resolution.y * 0.5f)
         );
 
+        if (cam.enableDOF && cam.lensRadius > 0.0f)
+        {
+            glm::vec3 focusPoint = cam.position + segment.ray.direction *
+                (cam.focusDistance / glm::dot(segment.ray.direction, cam.view));
+
+            float radius = cam.lensRadius * sqrtf(u01(rng));
+            float angle = 2.0f * PI * u01(rng);
+            glm::vec3 offset =
+                glm::normalize(cam.right) * (radius * cosf(angle)) +
+                glm::normalize(cam.up) * (radius * sinf(angle));
+
+            segment.ray.origin += offset;
+            segment.ray.direction = glm::normalize(focusPoint - segment.ray.origin);
+        }
+
         segment.pixelIndex = index;
         segment.remainingBounces = traceDepth;
     }
