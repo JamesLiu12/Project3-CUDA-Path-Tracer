@@ -405,10 +405,10 @@ int main(int argc, char** argv)
 
     // compute phi (horizontal) and theta (vertical) relative 3D axis
     // so, (0 0 1) is forward, (0 1 0) is up
-    glm::vec3 viewXZ = glm::vec3(view.x, 0.0f, view.z);
-    glm::vec3 viewZY = glm::vec3(0.0f, view.y, view.z);
-    phi = glm::acos(glm::dot(glm::normalize(viewXZ), glm::vec3(0, 0, -1)));
-    theta = glm::acos(glm::dot(glm::normalize(viewZY), glm::vec3(0, 1, 0)));
+    const glm::vec3 offset = cam.position - cam.lookAt;
+    const glm::vec3 dir = glm::normalize(offset);
+    phi = glm::atan(dir.x, dir.z);
+    theta = glm::acos(glm::clamp(dir.y, -1.0f, 1.0f));
     ogLookAt = cam.lookAt;
     zoom = glm::length(cam.position - ogLookAt);
     cam.focusDistance = zoom;
