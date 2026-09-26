@@ -7,7 +7,7 @@ class Scene
 {
 private:
     void loadFromJSON(const std::string& jsonName);
-    void loadFromGLTF(const std::string& filename, const glm::mat4& rootTransform = glm::mat4(1.0f));
+    void loadFromGLTF(const std::string& filename, const glm::mat4& rootTransform = glm::mat4(1.0f), int overrideMaterialId = -1);
 public:
     Scene(std::string filename);
 

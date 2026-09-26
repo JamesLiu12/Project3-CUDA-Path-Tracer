@@ -130,7 +130,17 @@ void Scene::loadFromJSON(const std::string& jsonName)
                 utilityCore::buildTransformationMatrix(
                     translation, rotation, scale);
 
-            loadFromGLTF(toJsonRelativePath(jsonName, p["FILEPATH"]), rootTransform);
+            int overrideMaterialId = -1;
+            if (p.contains("MATERIAL")) {
+                overrideMaterialId = (int)(
+                    MatNameToID.at(p["MATERIAL"].get<std::string>()));
+            }
+
+            loadFromGLTF(
+                toJsonRelativePath(jsonName, p["FILEPATH"].get<std::string>()),
+                rootTransform,
+                overrideMaterialId
+            );
 
             continue;
         }
@@ -300,7 +310,7 @@ namespace {
     }
 }
 
-void Scene::loadFromGLTF(const std::string& filename, const glm::mat4& rootTransform)
+void Scene::loadFromGLTF(const std::string& filename, const glm::mat4& rootTransform, int overrideMaterialId)
 {
     tinygltf::TinyGLTF loader;
     tinygltf::Model model;
@@ -502,7 +512,12 @@ void Scene::loadFromGLTF(const std::string& filename, const glm::mat4& rootTrans
                 materials.emplace_back();
             }
 
-            int materialId = source.material < 0 ? defaultMaterial : materialOffset + source.material;
+            int materialId = overrideMaterialId >= 0
+                ? overrideMaterialId
+                : source.material < 0 
+                ? defaultMaterial
+                : materialOffset + source.material;
+
             meshes[m].push_back({ int(primitives.size()), materialId });
             primitives.push_back(primitive);
         }
