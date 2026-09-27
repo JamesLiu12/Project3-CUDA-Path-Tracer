@@ -136,7 +136,7 @@ __host__ __device__ float meshIntersectionTest(
         const Vertex& v2 = vertices[triangle.indices[2]];
 
         glm::vec3 hit;
-        if (!glm::intersectLineTriangle(q.origin, q.direction, v0.position, v1.position, v2.position, hit)
+        if (!intersectMeshTriangle(q.origin, q.direction, v0.position, v1.position, v2.position, hit)
             || hit.x <= 0.0f || hit.x >= tmin)
             continue;
 

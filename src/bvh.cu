@@ -161,7 +161,7 @@ static __device__ float intersectTriangle(
         geom.inverseTransform * glm::vec4(ray.direction, 0.0f));
 
     glm::vec3 tuv;
-    if (!glm::intersectLineTriangle(
+    if (!intersectMeshTriangle(
         local.origin, local.direction,
         a.position, b.position, c.position, tuv) || tuv.x <= 0.0f) {
         return -1.0f;

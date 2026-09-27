@@ -4,6 +4,32 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/intersect.hpp>
+#include <cmath>
+
+__host__ __device__ inline bool intersectMeshTriangle(
+    const glm::vec3& origin, const glm::vec3& direction,
+    const glm::vec3& a, const glm::vec3& b, const glm::vec3& c,
+    glm::vec3& hit)
+{
+    const glm::vec3 edge1 = b - a;
+    const glm::vec3 edge2 = c - a;
+    const glm::vec3 p = glm::cross(direction, edge2);
+    const float det = glm::dot(edge1, p);
+    const float scale = glm::length(edge1) * glm::length(edge2) * glm::length(direction);
+    if (fabsf(det) <= 1e-7f * scale) return false;
+
+    const float invDet = 1.0f / det;
+    const glm::vec3 fromA = origin - a;
+    hit.y = glm::dot(fromA, p) * invDet;
+    if (hit.y < 0.0f || hit.y > 1.0f) return false;
+
+    const glm::vec3 q = glm::cross(fromA, edge1);
+    hit.z = glm::dot(direction, q) * invDet;
+    if (hit.z < 0.0f || hit.y + hit.z > 1.0f) return false;
+
+    hit.x = glm::dot(edge2, q) * invDet;
+    return true;
+}
 
 
 /**
