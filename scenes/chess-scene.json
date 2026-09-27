@@ -1,0 +1,67 @@
+{
+    "Materials":
+    {
+        "green_glass": 
+        {
+            "ALBEDO": [1.0, 1.0, 1.0],
+            "METALNESS": 0.0,
+            "ROUGHNESS": 0.015,
+            "TRANSMISSION": 1.0,
+            "IOR": 1.5,
+            "THIN_WALLED": false,
+            "ATTENUATION_COLOR": [0.35, 0.88, 0.50],
+            "ATTENUATION_DISTANCE": 0.75
+        },
+        "teapot_ceramic": 
+        {
+            "ALBEDO": [0.68, 0.65, 0.59],
+            "METALNESS": 0.0,
+            "ROUGHNESS": 0.28,
+            "TRANSMISSION": 0.0,
+            "IOR": 1.5
+        }
+    },
+    "Camera":
+    {
+        "RES":[1600, 1000],
+        "FOVY":30.0,
+        "ITERATIONS":5000,
+        "DEPTH":8,
+        "FILE":"chess-scene",
+        "EYE":[-0.5,2.2,1.0],
+        "LOOKAT":[-0.2,1.8,0.0],
+        "UP":[0.0,1.0,0.0]
+    },
+    "Objects":
+    [
+        {
+            "TYPE":"model",
+            "FILEPATH":"models/chess-main.glb",
+            "TRANS":[0.0,0.0,0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[1.0,1.0,1.0]
+        },
+        {
+            "TYPE":"model",
+            "MATERIAL":"green_glass",
+            "FILEPATH":"models/chess-dragon.glb",
+            "TRANS":[0.0,0.0,0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[1.0,1.0,1.0]
+        },
+        {
+            "TYPE":"model",
+            "MATERIAL":"teapot_ceramic",
+            "FILEPATH":"models/chess-teapot.glb",
+            "TRANS":[0.0,0.0,0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[1.0,1.0,1.0]
+        }
+    ],
+    "Environment": 
+    {
+        "FILEPATH": "hdr/brown_photostudio_02_4k.hdr",
+        "INTENSITY": 1.0,
+        "ROTATION": -90.0
+    }
+}
