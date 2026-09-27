@@ -49,6 +49,7 @@ void checkCUDAErrorFn(const char* msg, const char* file, int line)
 #define MATERIAL_SORTING 0
 #define STOCHASTIC_SAMPLING 1
 #define USE_BVH 1
+#define STREAM_COMPACTION 1
 
 __host__ __device__
 thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int depth)
@@ -650,11 +651,15 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             hst_scene->environment.rotation
         );
 
+#if STREAM_COMPACTION
         PathSegment* pathEnd = thrust::partition(thrust::device, dev_paths, dev_paths + num_paths, IsPathAlive{});
         checkCUDAError("path partition");
 
         num_paths = static_cast<int>(pathEnd - dev_paths);
-        iterationComplete = num_paths == 0;
+        iterationComplete = num_paths == 0 || depth >= traceDepth;
+#else
+        iterationComplete = depth >= traceDepth;
+#endif
 
         if (guiData != NULL)
         {
