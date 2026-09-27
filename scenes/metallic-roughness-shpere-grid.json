@@ -1,0 +1,33 @@
+{
+    "Materials":
+    {
+
+    },
+    "Camera":
+    {
+        "RES":[1200, 1200],
+        "FOVY":45.0,
+        "ITERATIONS":5000,
+        "DEPTH":8,
+        "FILE":"metallic-roughness-shpere-grid",
+        "EYE":[0.0,0.0,5.5],
+        "LOOKAT":[0.0,0.0,0.0],
+        "UP":[0.0,1.0,0.0]
+    },
+    "Objects":
+    [
+        {
+            "TYPE":"model",
+            "FILEPATH":"models/MetalRoughSpheres.glb",
+            "TRANS":[0.0,0.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[1.0,1.0,1.0]
+        }
+    ],
+    "Environment": 
+    {
+        "FILEPATH": "hdr/brown_photostudio_02_4k.hdr",
+        "INTENSITY": 1.0,
+        "ROTATION": 90
+    }
+}

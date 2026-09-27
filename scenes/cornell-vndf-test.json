@@ -1,0 +1,120 @@
+{
+    "Materials":
+    {
+        "light":
+        {
+            "EMITTANCE":[5.0, 5.0, 5.0],
+            "ALBEDO":[1.0, 1.0, 0.0]
+        },
+        "diffuse_white":
+        {
+            "ALBEDO":[0.98, 0.98, 0.98],
+            "METALNESS":0.0,
+            "ROUGHNESS":0.5
+        },
+        "diffuse_red":
+        {
+            "ALBEDO":[0.85, 0.35, 0.35],
+            "METALNESS":0.0,
+            "ROUGHNESS":0.5
+        },
+        "diffuse_green":
+        {
+            "ALBEDO":[0.35, 0.85, 0.35],
+            "METALNESS":0.0,
+            "ROUGHNESS":0.5
+        },
+        "rough_mirror": {
+            "ALBEDO": [0.9, 0.9, 0.9],
+            "METALNESS": 1.0,
+            "ROUGHNESS": 0.3,
+            "TRANSMISSION": 0.0
+        },
+        "glass": {
+            "ALBEDO": [1.0, 1.0, 1.0],
+            "METALNESS": 0.0,
+            "ROUGHNESS": 0.3,
+            "TRANSMISSION": 1.0,
+            "IOR": 1.5,
+            "THIN_WALLED": false
+        }
+    },
+    "Camera":
+    {
+        "RES":[1200,1200],
+        "FOVY":45.0,
+        "ITERATIONS":512,
+        "DEPTH":8,
+        "FILE":"cornell-vndf-test",
+        "EYE":[0.0,5.0,8.0],
+        "LOOKAT":[0.0,5.0,-2.0],
+        "UP":[0.0,1.0,0.0]
+    },
+    "Objects":
+    [
+        {
+            "TYPE":"cube",
+            "MATERIAL":"light",
+            "TRANS":[0.0,10.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[3.0,0.3,3.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_white",
+            "TRANS":[0.0,0.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[10.0,0.01,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_white",
+            "TRANS":[0.0,10.0,0.0],
+            "ROTAT":[0.0,0.0,90.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_white",
+            "TRANS":[0.0,5.0,-5.0],
+            "ROTAT":[0.0,90.0,0.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_red",
+            "TRANS":[-5.0,5.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_green",
+            "TRANS":[5.0,5.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
+            "TYPE": "cube",
+            "MATERIAL": "rough_mirror",
+            "TRANS": [-2.7, 4.5, 0.0],
+            "ROTAT": [0.0, 60.0, 0.0],
+            "SCALE": [2.6, 6.0, 0.06]
+        },
+        {
+            "TYPE": "cube",
+            "MATERIAL": "rough_mirror",
+            "TRANS": [2.7, 4.5, 0.0],
+            "ROTAT": [0.0, -60.0, 0.0],
+            "SCALE": [2.6, 6.0, 0.06]
+        },
+        {
+            "TYPE": "model",
+            "MATERIAL": "glass",
+            "FILEPATH": "models/the_utah_teapot.glb",
+            "TRANS": [0.0, 4.0, 2.0],
+            "ROTAT": [0.0, -45.0, 0.0],
+            "SCALE": [0.02, 0.02, 0.02]
+        }
+    ]
+}
