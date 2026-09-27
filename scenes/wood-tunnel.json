@@ -1,0 +1,93 @@
+{
+    "Materials": 
+    {
+        "warm_wall": 
+        {
+            "ALBEDO": [0.48, 0.29, 0.15],
+            "METALNESS": 0.0,
+            "ROUGHNESS": 1.0
+        },
+        "dark_floor": 
+        {
+            "ALBEDO": [0.32, 0.18, 0.09],
+            "METALNESS": 0.0,
+            "ROUGHNESS": 1.0
+        },
+        "warm_light": 
+        {
+            "ALBEDO": [1.0, 0.83, 0.58],
+            "EMITTANCE": [22.0, 15.0, 8.0]
+        },
+        "clear_glass": 
+        {
+            "ALBEDO": [1.0, 1.0, 1.0],
+            "METALNESS": 0.0,
+            "ROUGHNESS": 0.0,
+            "TRANSMISSION": 1.0,
+            "IOR": 1.5,
+            "THIN_WALLED": false
+        }
+    },
+    "Camera": 
+    {
+            "RES": [800, 800],
+            "FOVY": 45.0,
+            "ITERATIONS": 2000,
+            "DEPTH": 8,
+            "FILE": "wood-tunnel",
+            "EYE": [-1.0, 2.0, -1.0],
+            "LOOKAT": [0.0, 2.0, -10.0],
+            "UP": [0.0, 1.0, 0.0]
+    },
+    "Objects": [
+        {
+            "TYPE": "cube",
+            "MATERIAL": "dark_floor",
+            "TRANS": [0.0, -0.06, -4.0],
+            "ROTAT": [0.0, 0.0, 0.0],
+            "SCALE": [4.0, 0.12, 16.0]
+        },
+        {
+            "TYPE": "cube",
+            "MATERIAL": "warm_wall",
+            "TRANS": [0.0, 4.06, -4.0],
+            "ROTAT": [0.0, 0.0, 0.0],
+            "SCALE": [4.0, 0.12, 16.0]
+        },
+        {
+            "TYPE": "cube",
+            "MATERIAL": "warm_wall",
+            "TRANS": [-2.06, 2.0, -4.0],
+            "ROTAT": [0.0, 0.0, 0.0],
+            "SCALE": [0.12, 4.0, 16.0]
+        },
+        {
+            "TYPE": "cube",
+            "MATERIAL": "warm_wall",
+            "TRANS": [2.06, 2.0, -4.0],
+            "ROTAT": [0.0, 0.0, 0.0],
+            "SCALE": [0.12, 4.0, 16.0]
+        },
+        {
+            "TYPE": "cube",
+            "MATERIAL": "warm_light",
+            "TRANS": [0.0, 2.0, -10.0],
+            "ROTAT": [0.0, 0.0, 0.0],
+            "SCALE": [5.0, 5.0, 0.08]
+        },
+        {
+            "TYPE": "sphere",
+            "MATERIAL": "clear_glass",
+            "TRANS": [0.65, 0.70, -6.8],
+            "ROTAT": [0.0, 0.0, 0.0],
+            "SCALE": [1.4, 1.4, 1.4]
+        },
+        {
+            "TYPE": "cube",
+            "MATERIAL": "warm_wall",
+            "TRANS": [0.0, 2.0, 0.0],
+            "ROTAT": [0.0, 0.0, 0.0],
+            "SCALE": [5.0, 5.0, 0.08]
+        }
+    ]
+}
