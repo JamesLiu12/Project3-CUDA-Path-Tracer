@@ -13,10 +13,18 @@ __host__ __device__ int wrapTexel(int i, int size, WrapMode mode)
 
 __host__ __device__ glm::vec4 readTexel(
     int x, int y, const Texture& texture, const TextureImage& image,
-    const glm::vec4* texels, bool srgb)
+    const uint32_t* texels, const glm::vec4* floatTexels, bool srgb)
 {
-    glm::vec4 color = texels[image.texelOffset + wrapTexel(y, image.height, texture.wrapV) * image.width
-        + wrapTexel(x, image.width, texture.wrapU)];
+    int index = image.texelOffset + wrapTexel(y, image.height, texture.wrapV) * image.width
+        + wrapTexel(x, image.width, texture.wrapU);
+    glm::vec4 color;
+    if (image.isFloat) {
+        color = floatTexels[index];
+    } else {
+        uint32_t packed = texels[index];
+        color = glm::vec4(float(packed & 255u), float((packed >> 8) & 255u),
+            float((packed >> 16) & 255u), float(packed >> 24)) * (1.0f / 255.0f);
+    }
 
     if (srgb) {
         for (int i = 0; i < 3; ++i) {
@@ -37,7 +45,7 @@ __host__ __device__ glm::vec2 textureUV(
 __host__ __device__ glm::vec4 sampleTexture(
     const TextureRef& textureRef, const MeshPrimitive& primitive, const Triangle& triangle, glm::vec3 weights,
     const glm::vec2* texcoords, const Texture* textures, const TextureImage* images,
-    const glm::vec4* texels, bool srgb)
+    const uint32_t* texels, const glm::vec4* floatTexels, bool srgb)
 {
     if (textureRef.textureId < 0 || textureRef.texCoord >= primitive.texcoordSetCount) {
         return glm::vec4(1);
@@ -59,7 +67,7 @@ __host__ __device__ glm::vec4 sampleTexture(
     // TODO: mip chain
     glm::vec2 p = uv * glm::vec2(image.width, image.height);
     if (texture.magFilter == FilterMode::Nearest) {
-        return readTexel(int(floorf(p.x)), int(floorf(p.y)), texture, image, texels, srgb);
+        return readTexel(int(floorf(p.x)), int(floorf(p.y)), texture, image, texels, floatTexels, srgb);
     }
         
     p -= glm::vec2(0.5f);
@@ -68,17 +76,17 @@ __host__ __device__ glm::vec4 sampleTexture(
     int y = int(floorf(p.y));
 
     glm::vec2 f = p - glm::vec2(x, y);
-    return glm::mix(glm::mix(readTexel(x, y, texture, image, texels, srgb),
-        readTexel(x + 1, y, texture, image, texels, srgb), f.x),
-        glm::mix(readTexel(x, y + 1, texture, image, texels, srgb),
-            readTexel(x + 1, y + 1, texture, image, texels, srgb), f.x), f.y);
+    return glm::mix(glm::mix(readTexel(x, y, texture, image, texels, floatTexels, srgb),
+        readTexel(x + 1, y, texture, image, texels, floatTexels, srgb), f.x),
+        glm::mix(readTexel(x, y + 1, texture, image, texels, floatTexels, srgb),
+            readTexel(x + 1, y + 1, texture, image, texels, floatTexels, srgb), f.x), f.y);
 }
 
 __host__ __device__ void evaluateMaterial(
     Material& material, glm::vec3& normal, const ShadeableIntersection& hit,
     const Geom* geoms, const MeshPrimitive* primitives, const Vertex* vertices,
     const Triangle* triangles, const glm::vec2* texcoords, const Texture* textures,
-    const TextureImage* images, const glm::vec4* texels)
+    const TextureImage* images, const uint32_t* texels, const glm::vec4* floatTexels)
 {
     if (hit.triangleId < 0) {
         return;
@@ -95,18 +103,18 @@ __host__ __device__ void evaluateMaterial(
         color += w[i] * vertices[triangle.indices[i]].color;
     }
 
-    color *= sampleTexture(material.baseColorTexture, primitive, triangle, w, texcoords, textures, images, texels, true);
+    color *= sampleTexture(material.baseColorTexture, primitive, triangle, w, texcoords, textures, images, texels, floatTexels, true);
 
     material.albedo *= glm::vec3(color);
     material.alpha *= color.a;
 
-    glm::vec4 mr = sampleTexture(material.metallicRoughnessTexture, primitive, triangle, w, texcoords, textures, images, texels);
+    glm::vec4 mr = sampleTexture(material.metallicRoughnessTexture, primitive, triangle, w, texcoords, textures, images, texels, floatTexels);
 
     material.roughness *= mr.g;
     material.metalness *= mr.b;
-    material.emittance *= glm::vec3(sampleTexture(material.emissiveTexture, primitive, triangle, w, texcoords, textures, images, texels, true));
+    material.emittance *= glm::vec3(sampleTexture(material.emissiveTexture, primitive, triangle, w, texcoords, textures, images, texels, floatTexels, true));
 
-    material.transmission *= sampleTexture(material.transmissionTexture, primitive, triangle, w, texcoords, textures, images, texels, false).r;
+    material.transmission *= sampleTexture(material.transmissionTexture, primitive, triangle, w, texcoords, textures, images, texels, floatTexels, false).r;
 
     const TextureRef& textureRef = material.normalTexture;
 
@@ -163,7 +171,7 @@ __host__ __device__ void evaluateMaterial(
         bitangent = glm::cross(n, tangent) * (glm::dot(glm::cross(n, tangent), bitangent) < 0 ? -1.0f : 1.0f);
     }
 
-    glm::vec3 mapped = 2.0f * glm::vec3(sampleTexture(textureRef, primitive, triangle, w, texcoords, textures, images, texels)) - 1.0f;
+    glm::vec3 mapped = 2.0f * glm::vec3(sampleTexture(textureRef, primitive, triangle, w, texcoords, textures, images, texels, floatTexels)) - 1.0f;
     mapped.x *= material.normalScale;
     mapped.y *= material.normalScale;
     mapped = tangent * mapped.x + bitangent * mapped.y + n * mapped.z;

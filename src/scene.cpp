@@ -329,14 +329,26 @@ void Scene::loadFromGLTF(const std::string& filename, const glm::mat4& rootTrans
     int textureOffset = int(textures.size());
     int materialOffset = int(materials.size());
 
-    for (const auto& image : model.images) {
+    for (auto& image : model.images) {
         TextureImage result;
         result.width = image.width;
         result.height = image.height;
-        result.texelOffset = int(texels.size());
+        result.isFloat = image.pixel_type != TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE || image.bits != 8;
+        result.texelOffset = int(result.isFloat ? floatTexels.size() : texels.size());
         int bytes = image.bits / 8;
 
-        for (int i = 0; i < image.width * image.height; ++i) {
+        for (int i = 0; i < image.width * image.height; i++) {
+            if (!result.isFloat) {
+                const unsigned char* p = image.image.data() + i * image.component;
+                uint32_t r = p[0];
+                uint32_t g = image.component > 1 ? p[1] : r;
+                uint32_t b = image.component > 2 ? p[2] : r;
+                uint32_t a = image.component > 3 ? p[3] :
+                    (image.component == 2 ? g : 255u);
+                if (image.component < 3) g = r;
+                texels.push_back(r | (g << 8) | (b << 16) | (a << 24));
+                continue;
+            }
             glm::vec4 pixel(1.0f);
             for (int c = 0; c < image.component; ++c)
                 pixel[c] = float(readComponent(image.image.data() + (i * image.component + c) * bytes,
@@ -345,9 +357,10 @@ void Scene::loadFromGLTF(const std::string& filename, const glm::mat4& rootTrans
                 pixel.a = image.component == 2 ? pixel.g : 1.0f;
                 pixel.g = pixel.b = pixel.r;
             }
-            texels.push_back(pixel);
+            floatTexels.push_back(pixel);
         }
         textureImages.push_back(result);
+        std::vector<unsigned char>().swap(image.image);
     }
 
     for (const auto& texture : model.textures) {

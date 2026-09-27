@@ -88,7 +88,8 @@ static Triangle* dev_triangles = NULL;
 static glm::vec2* dev_texcoords = NULL;
 static Texture* dev_textures = NULL;
 static TextureImage* dev_textureImages = NULL;
-static glm::vec4* dev_texels = NULL;
+static uint32_t* dev_texels = NULL;
+static glm::vec4* dev_floatTexels = NULL;
 static Material* dev_materials = NULL;
 static PathSegment* dev_paths = NULL;
 static ShadeableIntersection* dev_intersections = NULL;
@@ -142,8 +143,14 @@ void pathtraceInit(Scene* scene)
         cudaMalloc(&dev_textureImages, scene->textureImages.size() * sizeof(TextureImage));
         cudaMemcpy(dev_textureImages, scene->textureImages.data(), scene->textureImages.size() * sizeof(TextureImage), cudaMemcpyHostToDevice);
 
-        cudaMalloc(&dev_texels, scene->texels.size() * sizeof(glm::vec4));
-        cudaMemcpy(dev_texels, scene->texels.data(), scene->texels.size() * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+        if (!scene->texels.empty()) {
+            cudaMalloc(&dev_texels, scene->texels.size() * sizeof(uint32_t));
+            cudaMemcpy(dev_texels, scene->texels.data(), scene->texels.size() * sizeof(uint32_t), cudaMemcpyHostToDevice);
+        }
+        if (!scene->floatTexels.empty()) {
+            cudaMalloc(&dev_floatTexels, scene->floatTexels.size() * sizeof(glm::vec4));
+            cudaMemcpy(dev_floatTexels, scene->floatTexels.data(), scene->floatTexels.size() * sizeof(glm::vec4), cudaMemcpyHostToDevice);
+        }
     }
 
 #if USE_BVH
@@ -185,6 +192,7 @@ void pathtraceFree()
     cudaFree(dev_textures);
     cudaFree(dev_textureImages);
     cudaFree(dev_texels);
+    cudaFree(dev_floatTexels);
 #if USE_BVH
     cudaFree(dev_bvhNodes);
     cudaFree(dev_bvhRefs);
@@ -399,7 +407,8 @@ __global__ void shadeMaterial(
     const glm::vec2* texcoords,
     const Texture* textures,
     const TextureImage* images,
-    const glm::vec4* texels,
+    const uint32_t* texels,
+    const glm::vec4* floatTexels,
     const float* envPixels,
     glm::ivec2 envSize,
     float envIntensity,
@@ -439,7 +448,7 @@ __global__ void shadeMaterial(
     bool volumeBoundary = !material.thinWalled && material.transmission > 0.0f;
 
     evaluateMaterial(material, normal, intersection, geoms, primitives, vertices, triangles,
-                     texcoords, textures, images, texels);
+                     texcoords, textures, images, texels, floatTexels);
 
     thrust::default_random_engine rng = makeSeededRandomEngine(iter, pathSegment.pixelIndex, depth);
     thrust::uniform_real_distribution<float> u01(0, 1);
@@ -645,6 +654,7 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             dev_textures,
             dev_textureImages,
             dev_texels,
+            dev_floatTexels,
             dev_envPixels,
             hst_scene->environment.size,
             hst_scene->environment.intensity,

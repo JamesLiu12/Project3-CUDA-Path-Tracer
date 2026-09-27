@@ -23,7 +23,8 @@ public:
 
     std::vector<TextureImage> textureImages;
     std::vector<Texture> textures;
-    std::vector<glm::vec4> texels;
+    std::vector<uint32_t> texels;
+    std::vector<glm::vec4> floatTexels;
 
     Environment environment;
 };

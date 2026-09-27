@@ -103,6 +103,7 @@ struct TextureImage
     int height = 0;
 
     int texelOffset = 0;
+    bool isFloat = false;
 };
 
 struct Texture
