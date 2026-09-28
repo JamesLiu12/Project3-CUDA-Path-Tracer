@@ -1,0 +1,33 @@
+{
+    "Materials":
+    {
+
+    },
+    "Camera":
+    {
+        "RES":[1600, 1000],
+        "FOVY":30.0,
+        "ITERATIONS":5000,
+        "DEPTH":8,
+        "FILE":"chess-outdoor",
+        "EYE":[-0.4,0.15,0.2],
+        "LOOKAT":[0.0,0.0,0.0],
+        "UP":[0.0,1.0,0.0]
+    },
+    "Objects":
+    [
+        {
+            "TYPE":"model",
+            "FILEPATH":"models/ABeautifulGame.glb",
+            "TRANS":[0.0,0.0,0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[1.0,1.0,1.0]
+        }
+    ],
+    "Environment": 
+    {
+        "FILEPATH": "hdr/citrus_orchard_road_puresky_4k.hdr",
+        "INTENSITY": 1.0,
+        "ROTATION": -90.0
+    }
+}
